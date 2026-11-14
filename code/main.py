@@ -13,7 +13,13 @@ from cards_list import (
 )
 from card_parser import parse_card
 from storage import load_existing_data, append_organization
+from rubrics import load_rubrics, build_rubric_url
 
+# Загружаем рубрики из CSV
+rubrics = load_rubrics("rubrics_mapping_updated.csv")
+
+print(f"Загружено рубрик: {len(rubrics)}")
+print("Первая рубрика:", rubrics[0])
 
 driver = create_driver(headless=False)
 
@@ -24,15 +30,26 @@ seen_ids = {row["id"] for row in results}
 print(f"📂 Загружено ранее сохранённых организаций: {len(results)}")
 
 page = 1
-MAX_PAGES = 4
+MAX_PAGES = 1
 
 try:
     # 1. Открываем сайт
-    driver.get("https://2gis.com/ekaterinburg")
+    rubric = rubrics[0]
+
+    url = build_rubric_url(rubric["id"])
+
+    print(f"Обрабатываем рубрику: {rubric['name']}")
+    print(f"URL: {url}")
+
+    driver.get(url)
+
     time.sleep(7)
 
-    # 2. Выполняем поиск
-    search_organizations(driver, "Пункты выдачи интернет-заказов")
+    # driver.get("https://2gis.com/ekaterinburg")
+    # time.sleep(7)
+    #
+    # # 2. Выполняем поиск
+    # search_organizations(driver, "Пункты выдачи интернет-заказов")
 
     while True:
         # 3. Прокручиваем текущую страницу поиска

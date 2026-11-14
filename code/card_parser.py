@@ -2,6 +2,7 @@ import re
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time
 
 def clean_text(text):
     if not text:
@@ -19,6 +20,7 @@ def parse_card(driver):
         "microdistrict": None,
         "email": None,
         "rubrics": None,
+        "status": "active",
     }
 
     # --- ID ---
@@ -143,6 +145,28 @@ def parse_card(driver):
 
     # --- Рубрики организации ---
     try:
+        info_tab = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, "//*[normalize-space(text())='Инфо']")
+            )
+        )
+
+        info_tab.click()
+
+        # Ждём появления раздела "В справочнике"
+        WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located(
+                (
+                    By.XPATH,
+                    "//*[normalize-space(text())='В справочнике']"
+                )
+            )
+        )
+
+        # Даём время загрузиться всем рубрикам
+        time.sleep(3)
+
+        # Получаем ссылки на рубрики
         rubric_links = driver.find_elements(
             By.CSS_SELECTOR,
             "a[href*='/rubricId/']"
@@ -151,15 +175,13 @@ def parse_card(driver):
         rubrics = []
 
         for link in rubric_links:
-            rubric_name = link.text.strip()
+            rubric_name = clean_text(link.text)
 
             if rubric_name:
                 rubrics.append(rubric_name)
 
         if rubrics:
-            data["rubrics"] = "; ".join(
-                dict.fromkeys(rubrics)
-            )
+            data["rubrics"] = "; ".join(dict.fromkeys(rubrics))
 
     except Exception as e:
         print(f"Ошибка получения рубрик: {type(e).__name__}")
