@@ -10,11 +10,42 @@ def clean_text(text):
 
     return " ".join(text.split())
 
+def wait_for_rubrics(driver, timeout=15, stable_time=2):
+    selector = "a[href*='/rubricId/']"
+
+    start_time = time.monotonic()
+    last_count = -1
+    last_change = time.monotonic()
+
+    while time.monotonic() - start_time < timeout:
+        elements = driver.find_elements(
+            By.CSS_SELECTOR,
+            selector
+        )
+
+        count = len(elements)
+
+        if count != last_count:
+            last_count = count
+            last_change = time.monotonic()
+
+        if count > 0 and time.monotonic() - last_change >= stable_time:
+            return elements
+
+        time.sleep(0.3)
+
+    return driver.find_elements(
+        By.CSS_SELECTOR,
+        selector
+    )
+
 
 def parse_card(driver):
     data = {
         "id": None,
         "name": None,
+        "display_category": None,
+        "enterprise_type": None,
         "address": None,
         "district": None,
         "microdistrict": None,
@@ -67,6 +98,23 @@ def parse_card(driver):
             )
 
             print("h1.is_displayed:", heading.is_displayed())
+
+    # --- Категория под названием организации ---
+    try:
+        category_elements = driver.find_elements(
+            By.CSS_SELECTOR,
+            "span._3yxk2u"
+        )
+
+        for element in category_elements:
+            category = clean_text(element.text)
+
+            if category:
+                data["display_category"] = category
+                break
+
+    except Exception as e:
+        print(f"Ошибка получения категории: {type(e).__name__}")
 
     # --- Контейнер с адресной информацией ---
     try:
@@ -164,18 +212,22 @@ def parse_card(driver):
         )
 
         # Даём время загрузиться всем рубрикам
-        time.sleep(3)
+        rubric_links = wait_for_rubrics(driver)
 
-        # Получаем ссылки на рубрики
-        rubric_links = driver.find_elements(
-            By.CSS_SELECTOR,
-            "a[href*='/rubricId/']"
-        )
+        for link in rubric_links:
+            print(
+                "Рубрика:",
+                repr(link.text),
+                "| textContent:",
+                repr(link.get_attribute("textContent"))
+            )
 
         rubrics = []
 
         for link in rubric_links:
-            rubric_name = clean_text(link.text)
+            rubric_name = clean_text(
+                link.get_attribute("textContent")
+            )
 
             if rubric_name:
                 rubrics.append(rubric_name)
@@ -185,6 +237,32 @@ def parse_card(driver):
 
     except Exception as e:
         print(f"Ошибка получения рубрик: {type(e).__name__}")
+
+
+    # --- Тип предприятия ---
+    try:
+        labels = driver.find_elements(
+            By.XPATH,
+            "//span[normalize-space(.)='Тип предприятия']"
+        )
+
+        if labels:
+            parent = labels[0].find_element(
+                By.XPATH,
+                "../.."
+            )
+
+            next_element = parent.find_element(
+                By.XPATH,
+                "following-sibling::*[1]"
+            )
+
+            data["enterprise_type"] = clean_text(
+                next_element.get_attribute("textContent")
+            )
+
+    except Exception as e:
+        print(f"Ошибка получения типа предприятия: {type(e).__name__}")
 
     print(f"Итоговые данные: {data}")
 
