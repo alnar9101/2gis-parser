@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 
 
@@ -14,10 +15,18 @@ def load_existing_data(filename):
 def append_organization(filename, data):
     file_exists = os.path.exists(filename)
 
+    row = data.copy()
+
+    if row.get("rubrics") is not None:
+        row["rubrics"] = json.dumps(
+            row["rubrics"],
+            ensure_ascii=False
+        )
+
     with open(filename, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=data.keys())
+        writer = csv.DictWriter(f, fieldnames=row.keys())
 
         if not file_exists or os.path.getsize(filename) == 0:
             writer.writeheader()
 
-        writer.writerow(data)
+        writer.writerow(row)

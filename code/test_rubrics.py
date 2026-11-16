@@ -12,13 +12,9 @@ try:
     data = parse_card(driver)
     rubrics = data["rubrics"]
 
-    if rubrics:
-        rubric_count = len(rubrics.split("; "))
-    else:
-        rubric_count = 0
+    rubric_count = len(rubrics or [])
 
     print(f"\nКоличество полученных рубрик: {rubric_count}")
-
 
 
 finally:

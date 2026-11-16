@@ -214,29 +214,45 @@ def parse_card(driver):
         # Даём время загрузиться всем рубрикам
         rubric_links = wait_for_rubrics(driver)
 
-        for link in rubric_links:
-            print(
-                "Рубрика:",
-                repr(link.text),
-                "| textContent:",
-                repr(link.get_attribute("textContent"))
-            )
-
         rubrics = []
+        seen_rubric_ids = set()
 
         for link in rubric_links:
             rubric_name = clean_text(
                 link.get_attribute("textContent")
             )
 
-            if rubric_name:
-                rubrics.append(rubric_name)
+            href = link.get_attribute("href")
+
+            if not rubric_name or not href:
+                continue
+
+            match = re.search(r"/rubricId/(\d+)", href)
+
+            if not match:
+                continue
+
+            rubric_id = match.group(1)
+
+            if rubric_id in seen_rubric_ids:
+                continue
+
+            seen_rubric_ids.add(rubric_id)
+
+            rubrics.append({
+                "rubric_id": rubric_id,
+                "name": rubric_name
+            })
 
         if rubrics:
-            data["rubrics"] = "; ".join(dict.fromkeys(rubrics))
+            data["rubrics"] = rubrics
+
 
     except Exception as e:
+
         print(f"Ошибка получения рубрик: {type(e).__name__}")
+
+        print(f"Подробности: {e}")
 
 
     # --- Тип предприятия ---
