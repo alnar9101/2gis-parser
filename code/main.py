@@ -30,11 +30,16 @@ seen_ids = {row["id"] for row in results}
 print(f"📂 Загружено ранее сохранённых организаций: {len(results)}")
 
 page = 1
-MAX_PAGES = 1
+MAX_PAGES = 3
 
 try:
     # 1. Открываем сайт
-    rubric = rubrics[0]
+    # rubric = rubrics[0]
+
+    rubric = next(
+        r for r in rubrics
+        if r["name"] == "Рестораны"
+    )
 
     url = build_rubric_url(rubric["id"])
 

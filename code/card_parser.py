@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+from selenium.common.exceptions import ElementClickInterceptedException
 
 def clean_text(text):
     if not text:
@@ -46,6 +47,7 @@ def parse_card(driver):
         "name": None,
         "display_category": None,
         "enterprise_type": None,
+        "cuisines": [],
         "address": None,
         "district": None,
         "microdistrict": None,
@@ -199,7 +201,22 @@ def parse_card(driver):
             )
         )
 
-        info_tab.click()
+        try:
+            info_tab.click()
+
+        except ElementClickInterceptedException:
+            print("Вкладка Инфо перекрыта. Повторяем попытку.")
+
+            time.sleep(1)
+
+            info_tab = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, "//*[normalize-space(text())='Инфо']")
+                )
+            )
+
+            info_tab.click()
+
 
         # Ждём появления раздела "В справочнике"
         WebDriverWait(driver, 15).until(
@@ -247,12 +264,33 @@ def parse_card(driver):
         if rubrics:
             data["rubrics"] = rubrics
 
+        # --- Кухни организации ---
+        cuisines = []
+
+        elements = driver.find_elements(
+            By.CSS_SELECTOR,
+            "span._wrdavn"
+        )
+
+        for element in elements:
+            cuisine = element.get_attribute("textContent")
+
+            cuisine = cuisine.replace("\u200b", "").strip()
+
+            if cuisine.lower().endswith("кухня"):
+                if cuisine not in cuisines:
+                    cuisines.append(cuisine)
+
+        data["cuisines"] = cuisines
+
+
 
     except Exception as e:
 
         print(f"Ошибка получения рубрик: {type(e).__name__}")
 
         print(f"Подробности: {e}")
+
 
 
     # --- Тип предприятия ---
@@ -281,5 +319,8 @@ def parse_card(driver):
         print(f"Ошибка получения типа предприятия: {type(e).__name__}")
 
     print(f"Итоговые данные: {data}")
+    # print("Название:", data.get("name"))
+    # print("Рубрики:", data.get("rubrics"))
+    # print("Кухни:", data.get("cuisines"))
 
     return data
