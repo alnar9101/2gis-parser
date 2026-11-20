@@ -267,19 +267,46 @@ def parse_card(driver):
         # --- Кухни организации ---
         cuisines = []
 
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "span._wrdavn")
+            )
+        )
+
         elements = driver.find_elements(
             By.CSS_SELECTOR,
             "span._wrdavn"
         )
+        print("Проверяем кухни:", data["name"])
 
+        for element in driver.find_elements(
+                By.CSS_SELECTOR,
+                "span._wrdavn"
+        ):
+            text = element.get_attribute("textContent") or ""
+
+            if "кухня" in text.lower():
+                print("Найдено:", repr(text))
         for element in elements:
             cuisine = element.get_attribute("textContent")
 
             cuisine = cuisine.replace("\u200b", "").strip()
 
+            # if cuisine.lower().endswith("кухня"):
+            #     if cuisine not in cuisines:
+            #         cuisines.append(cuisine)
+
             if cuisine.lower().endswith("кухня"):
+                print(
+                    "CUISINE DEBUG:",
+                    data["name"],
+                    repr(cuisine),
+                    repr(element.get_attribute("outerHTML"))
+                )
+
                 if cuisine not in cuisines:
                     cuisines.append(cuisine)
+
 
         data["cuisines"] = cuisines
 

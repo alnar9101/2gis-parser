@@ -8,7 +8,7 @@ driver = create_driver(headless=False)
 
 try:
     driver.get(
-        "https://2gis.ru/ekaterinburg/firm/70000001040400946"
+        "https://2gis.ru/ekaterinburg/firm/70000001105704871"
     )
 
     info_tab = WebDriverWait(driver, 15).until(
