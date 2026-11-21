@@ -27,3 +27,10 @@ def save_progress(rubric_id, page, status="in_progress"):
             ensure_ascii=False,
             indent=4
         )
+
+def complete_rubric(rubric_id, page):
+    save_progress(
+        rubric_id=rubric_id,
+        page=page,
+        status="completed"
+    )

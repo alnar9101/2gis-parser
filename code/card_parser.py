@@ -229,8 +229,14 @@ def parse_card(driver):
         )
 
         # Даём время загрузиться всем рубрикам
+        start_rubrics = time.perf_counter()
+
         rubric_links = wait_for_rubrics(driver)
 
+        print(
+            f"Ожидание рубрик: "
+            f"{time.perf_counter() - start_rubrics:.2f} сек."
+        )
         rubrics = []
         seen_rubric_ids = set()
 
@@ -267,26 +273,17 @@ def parse_card(driver):
         # --- Кухни организации ---
         cuisines = []
 
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "span._wrdavn")
-            )
-        )
+        # WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located(
+        #         (By.CSS_SELECTOR, "span._wrdavn")
+        #     )
+        # )
 
         elements = driver.find_elements(
             By.CSS_SELECTOR,
             "span._wrdavn"
         )
-        print("Проверяем кухни:", data["name"])
 
-        for element in driver.find_elements(
-                By.CSS_SELECTOR,
-                "span._wrdavn"
-        ):
-            text = element.get_attribute("textContent") or ""
-
-            if "кухня" in text.lower():
-                print("Найдено:", repr(text))
         for element in elements:
             cuisine = element.get_attribute("textContent")
 

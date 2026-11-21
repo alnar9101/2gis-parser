@@ -41,9 +41,10 @@ def scroll_until_end(driver, pause_time=2):
 
     try:
         container = driver.find_element(By.CSS_SELECTOR, "div._1x4k6z7")
-    except:
-        print("❌ Контейнер не найден")
-        return
+
+    except Exception as e:
+        print(f"❌ Не удалось найти контейнер списка: {e}")
+        raise
 
     last_height = 0
 
@@ -81,12 +82,33 @@ def go_to_next_page(driver):
         for button in buttons:
             print("HTML элемента:", button.get_attribute("outerHTML"))
 
-        if len(buttons) == 0:
-            return False
-        # if len(buttons) < 2:
-        #     return False
+        next_buttons = driver.find_elements(
+            By.CSS_SELECTOR,
+            'div._n5hmn94:has(svg[style*="rotate(-90deg)"])'
+        )
 
-        next_button = buttons[-1] # последняя = вперед
+        if not next_buttons:
+            back_buttons = driver.find_elements(
+                By.CSS_SELECTOR,
+                'div._n5hmn94:has(svg[style*="rotate(90deg)"])'
+            )
+
+            if back_buttons:
+                print("🏁 Обнаружена последняя страница")
+                return False
+
+            raise RuntimeError(
+                "Не удалось определить состояние пагинации"
+            )
+
+        next_button = next_buttons[0]
+
+        # if len(buttons) == 0:
+        #     return False
+        # # if len(buttons) < 2:
+        # #     return False
+        #
+        # next_button = buttons[-1] # последняя = вперед
 
         driver.execute_script("arguments[0].click();", next_button)
         time.sleep(5)
@@ -94,8 +116,12 @@ def go_to_next_page(driver):
         print("➡️ Следующая страница")
         return True
 
-    except:
-        return False
+
+    except Exception as e:
+
+        print(f"❌ Ошибка при переходе на следующую страницу: {e}")
+
+        raise
 
 def get_card_urls(driver):
     cards = get_cards(driver)
@@ -121,3 +147,55 @@ def get_card_urls(driver):
             )
 
     return list(dict.fromkeys(urls))
+
+
+def collect_page_urls(driver, expected_count=12, attempts=3):
+    """
+    Собирает ссылки организаций после прокрутки.
+    Повторяет попытку, если карточек меньше ожидаемого.
+    """
+
+    best_urls = []
+
+    for attempt in range(1, attempts + 1):
+        print(f"🔎 Попытка загрузки {attempt}/{attempts}")
+
+        scroll_until_end(driver)
+
+        urls = get_card_urls(driver)
+
+        print(f"Получено уникальных ссылок: {len(urls)}")
+
+        if len(urls) > len(best_urls):
+            best_urls = urls
+
+        if len(best_urls) >= expected_count:
+            return best_urls
+
+        if attempt < attempts:
+            print("⏳ Карточек меньше ожидаемого. Повторяем...")
+            time.sleep(3)
+
+    return best_urls
+
+
+def has_next_page(driver):
+    next_buttons = driver.find_elements(
+        By.CSS_SELECTOR,
+        'div._n5hmn94:has(svg[style*="rotate(-90deg)"])'
+    )
+
+    if next_buttons:
+        return True
+
+    back_buttons = driver.find_elements(
+        By.CSS_SELECTOR,
+        'div._n5hmn94:has(svg[style*="rotate(90deg)"])'
+    )
+
+    if back_buttons:
+        return False
+
+    raise RuntimeError(
+        "Не удалось определить состояние пагинации"
+    )
